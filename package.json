@@ -18,8 +18,11 @@
       "command": "codehealer.heal",
       "title": "Heal"
     },{
-      "command": "myExtension.statusBarClick",
-      "title": "Hola Status"
+      "command": "codehealer.statusBarClick",
+      "title": "Status"
+    },{
+      "command": "codehealer.data",
+      "title": "Data"
     }]
   },
   "scripts": {
