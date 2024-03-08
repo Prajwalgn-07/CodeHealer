@@ -7,6 +7,7 @@ const vscode = require('vscode');
 function activate(context) {
 	createStatusBarItem(context);
     getActiveEditorData(context);
+    showSuggestion(context, pairs)
 
 	console.log('Congratulations, your extension "codehealer" is now active!');
 	let disposable = vscode.commands.registerCommand('codehealer.heal', function () {
@@ -15,6 +16,86 @@ function activate(context) {
 
 	context.subscriptions.push(disposable);
 }
+
+function showSuggestion(context, pairs){
+    const suggestionId = 'healerSuggestion.test';
+    context.subscriptions.push(
+        vscode.commands.registerCommand('healerSuggestion.test', () => {
+          // Create and show panel
+          const panel = vscode.window.createWebviewPanel(
+            'healerSuggestions',
+            'Suggestion',
+            vscode.ViewColumn.One,
+            {}
+          );
+          // And set its HTML content
+          panel.webview.html = generateHtmlCode(pairs);
+        })
+      );
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    item.command = suggestionId;
+
+    context.subscriptions.push(item);
+
+    item.text = `ShowSuggestion`;
+    item.tooltip = `show suggestion tooltip`;
+    item.show();
+}
+
+let pairs = [
+    {old_line: "This is the old line 1", new_line: "This is the new line 1"},
+    {old_line: "This is the old line 2", new_line: "This is the new line 2"},
+    {old_line: "This is the old line 3", new_line: "This is the new line 3"},
+    {old_line: "This is the old line 4", new_line: "This is the new line 4"},
+  ];
+  function generateHtmlCode(pairs) {
+    let htmlCode = `
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+        }
+        .line-pair {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+        }
+        .old-line {
+          color: #B22222;
+          background-color: #FFE6E6;
+          padding: 10px;
+          border-radius: 5px;
+          width: 45%;
+        }
+        .new-line {
+          color: #008000;
+          background-color: #E6FFE6;
+          padding: 10px;
+          border-radius: 5px;
+          width: 45%;
+        }
+      </style>
+    </head>
+    <body>
+    `;
+    pairs.forEach(pair => {
+      htmlCode += `
+      <div class="line-pair">
+        <p class="old-line">${pair.old_line}</p>
+        <p class="new-line">${pair.new_line}</p>
+      </div>
+      `;
+    });
+    htmlCode += `
+    </body>
+    </html>
+    `;
+    return htmlCode;
+  }
 
 function getActiveEditorData(context){
 
@@ -39,8 +120,8 @@ function getActiveEditorData(context){
 
     context.subscriptions.push(item);
 
-    item.text = `GetActiveEditorData`;
-    item.tooltip = `active editor data tooltip`;
+    item.text = `AnalyzeErrrorData`;
+    item.tooltip = `Analyze Error Data tool tip`;
     item.show();
 }
 
@@ -63,8 +144,8 @@ function createStatusBarItem(context)
 
     context.subscriptions.push(item);
 
-    item.text = `CodeHealer`;
-    item.tooltip = `status bar item tooltip`;
+    item.text = `GetErrorData`;
+    item.tooltip = `Error Data tool tip`;
     item.show();
 }
 
