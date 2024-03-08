@@ -28,6 +28,9 @@
       {
         "command": "healerSuggestion.suggest",
         "title": "Suggestion"
+      },{
+        "command": "healerSuggestion.replace",
+        "title": "ReplaceCode"
       }
     ]
   },
