@@ -27,7 +27,7 @@ function GetErrorData(context)
         // const pageType = await vscode.window.showQuickPick(
         //     ['shell', 'fetch rows, list in table'],
         //     { placeHolder: 'select type of web page to make' });
-        vscode.commands.executeCommand("extension.terminalCapture.runCapture")
+        vscode.commands.executeCommand("extension.terminalCapture.runCapture");
     }));
 
     // create a new status bar item that we can now manage
@@ -55,14 +55,6 @@ function SuggestionGenerator(context, pairs){
           panel.webview.html = generateHtmlCode(pairs);
         })
       );
-    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    item.command = suggestionId;
-
-    context.subscriptions.push(item);
-
-    item.text = `ShowSuggestion`;
-    item.tooltip = `show suggestion tooltip`;
-    item.show();
 }
 function AnalyzeErrorData(context){
 
@@ -75,6 +67,7 @@ function AnalyzeErrorData(context){
         const text = document.getText();
         console.log(text);
         vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
+        vscode.commands.executeCommand("healerSuggestion.suggest");
         return text;
     }
     else{
@@ -87,8 +80,8 @@ function AnalyzeErrorData(context){
 
     context.subscriptions.push(item);
 
-    item.text = `AnalyzeErrrorData`;
-    item.tooltip = `Analyze Error Data tool tip`;
+    item.text = `AnalyzeErrrorAndSuggestions`;
+    item.tooltip = `Analyze Error Data and show suggestions`;
     item.show();
 }
 
@@ -98,54 +91,54 @@ let pairs = [
     {old_line: "This is the old line 3", new_line: "This is the new line 3"},
     {old_line: "This is the old line 4", new_line: "This is the new line 4"},
   ];
-  function generateHtmlCode(pairs) {
-    let htmlCode = `
-    <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-        }
-        .line-pair {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding: 10px;
-          border: 1px solid #ddd;
-          border-radius: 5px;
-        }
-        .old-line {
-          color: #B22222;
-          background-color: #FFE6E6;
-          padding: 10px;
-          border-radius: 5px;
-          width: 45%;
-        }
-        .new-line {
-          color: #008000;
-          background-color: #E6FFE6;
-          padding: 10px;
-          border-radius: 5px;
-          width: 45%;
-        }
-      </style>
-    </head>
-    <body>
-    `;
-    pairs.forEach(pair => {
-      htmlCode += `
-      <div class="line-pair">
-        <p class="old-line">${pair.old_line}</p>
-        <p class="new-line">${pair.new_line}</p>
-      </div>
-      `;
-    });
+function generateHtmlCode(pairs) {
+let htmlCode = `
+<html>
+<head>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+    }
+    .line-pair {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .old-line {
+        color: #B22222;
+        background-color: #FFE6E6;
+        padding: 10px;
+        border-radius: 5px;
+        width: 45%;
+    }
+    .new-line {
+        color: #008000;
+        background-color: #E6FFE6;
+        padding: 10px;
+        border-radius: 5px;
+        width: 45%;
+    }
+    </style>
+</head>
+<body>
+`;
+pairs.forEach(pair => {
     htmlCode += `
-    </body>
-    </html>
+    <div class="line-pair">
+    <p class="old-line">${pair.old_line}</p>
+    <p class="new-line">${pair.new_line}</p>
+    </div>
     `;
-    return htmlCode;
-  }
+});
+htmlCode += `
+</body>
+</html>
+`;
+return htmlCode;
+}
 
 
 function deactivate() {}
