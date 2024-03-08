@@ -5,22 +5,45 @@ const vscode = require('vscode');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	createStatusBarItem(context);
-    getActiveEditorData(context);
-    showSuggestion(context, pairs)
+	GetErrorData(context);
+    AnalyzeErrorData(context);
+    SuggestionGenerator(context, pairs)
 
 	console.log('Congratulations, your extension "codehealer" is now active!');
 	let disposable = vscode.commands.registerCommand('codehealer.heal', function () {
-		vscode.window.showInformationMessage('Hello World from codehealer!');
+		vscode.window.showInformationMessage('Welcome to the codehealer!');
 	});
 
 	context.subscriptions.push(disposable);
 }
 
-function showSuggestion(context, pairs){
-    const suggestionId = 'healerSuggestion.test';
+function GetErrorData(context)
+{
+    // register a command that is invoked when the status bar
+    // item is clicked.
+    const myCommandId = 'codehealer.getErrorData';
+    context.subscriptions.push(vscode.commands.registerCommand(myCommandId, async () => 
+    {
+        // const pageType = await vscode.window.showQuickPick(
+        //     ['shell', 'fetch rows, list in table'],
+        //     { placeHolder: 'select type of web page to make' });
+        vscode.commands.executeCommand("extension.terminalCapture.runCapture")
+    }));
+
+    // create a new status bar item that we can now manage
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    item.command = myCommandId;
+
+    context.subscriptions.push(item);
+
+    item.text = `GetErrorData`;
+    item.tooltip = `Error Data tool tip`;
+    item.show();
+}
+function SuggestionGenerator(context, pairs){
+    const suggestionId = 'healerSuggestion.suggest';
     context.subscriptions.push(
-        vscode.commands.registerCommand('healerSuggestion.test', () => {
+        vscode.commands.registerCommand(suggestionId, () => {
           // Create and show panel
           const panel = vscode.window.createWebviewPanel(
             'healerSuggestions',
@@ -39,6 +62,33 @@ function showSuggestion(context, pairs){
 
     item.text = `ShowSuggestion`;
     item.tooltip = `show suggestion tooltip`;
+    item.show();
+}
+function AnalyzeErrorData(context){
+
+    const getActiveEditorDataId = 'codehealer.analyzeErrorData';
+    context.subscriptions.push(vscode.commands.registerCommand(getActiveEditorDataId, async () => 
+    {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+        const document = editor.document;
+        const text = document.getText();
+        console.log(text);
+        vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
+        return text;
+    }
+    else{
+        vscode.window.showInformationMessage('No active editor found');
+    }
+    }));
+
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    item.command = getActiveEditorDataId;
+
+    context.subscriptions.push(item);
+
+    item.text = `AnalyzeErrrorData`;
+    item.tooltip = `Analyze Error Data tool tip`;
     item.show();
 }
 
@@ -97,59 +147,7 @@ let pairs = [
     return htmlCode;
   }
 
-function getActiveEditorData(context){
 
-    const getActiveEditorDataId = 'codehealer.data';
-    context.subscriptions.push(vscode.commands.registerCommand(getActiveEditorDataId, async () => 
-    {
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-        const document = editor.document;
-        const text = document.getText();
-        console.log(text);
-        vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
-        return text;
-    }
-    else{
-        vscode.window.showInformationMessage('No active editor found');
-    }
-    }));
-
-    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    item.command = getActiveEditorDataId;
-
-    context.subscriptions.push(item);
-
-    item.text = `AnalyzeErrrorData`;
-    item.tooltip = `Analyze Error Data tool tip`;
-    item.show();
-}
-
-function createStatusBarItem(context)
-{
-    // register a command that is invoked when the status bar
-    // item is clicked.
-    const myCommandId = 'codehealer.statusBarClick';
-    context.subscriptions.push(vscode.commands.registerCommand(myCommandId, async () => 
-    {
-        // const pageType = await vscode.window.showQuickPick(
-        //     ['shell', 'fetch rows, list in table'],
-        //     { placeHolder: 'select type of web page to make' });
-        vscode.commands.executeCommand("extension.terminalCapture.runCapture")
-    }));
-
-    // create a new status bar item that we can now manage
-    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    item.command = myCommandId;
-
-    context.subscriptions.push(item);
-
-    item.text = `GetErrorData`;
-    item.tooltip = `Error Data tool tip`;
-    item.show();
-}
-
-// This method is called when your extension is deactivated
 function deactivate() {}
 
 module.exports = {

@@ -18,13 +18,13 @@
       "command": "codehealer.heal",
       "title": "Heal"
     },{
-      "command": "codehealer.statusBarClick",
+      "command": "codehealer.getErrorData",
       "title": "Status"
     },{
-      "command": "codehealer.data",
+      "command": "codehealer.analyzeErrorData",
       "title": "Data"
     },{
-      "command": "healerSuggestion.test",
+      "command": "healerSuggestion.suggest",
       "title": "Suggestion"
     }]
   },
