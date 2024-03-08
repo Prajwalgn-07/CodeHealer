@@ -23,6 +23,9 @@
     },{
       "command": "codehealer.data",
       "title": "Data"
+    },{
+      "command": "healerSuggestion.test",
+      "title": "Suggestion"
     }]
   },
   "scripts": {
