@@ -21,7 +21,8 @@ import('@azure/openai').then(({ OpenAIClient, AzureKeyCredential }) => {
 function activate(context) {
 	GetErrorData(context);
     AnalyzeErrorData(context);
-    SuggestionGenerator(context, pairs)
+    SuggestionGenerator(context);
+    ReplaceWithSuggestion(context);
 
 	console.log('Congratulations, your extension "codehealer" is now active!');
 	let disposable = vscode.commands.registerCommand('codehealer.heal', function () {
@@ -32,10 +33,8 @@ function activate(context) {
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
-const errorMessages = [
-  "Zero Division Error",
-  "at /Users/r542/Desktop/test.txt"
-];
+let errorMessages = "";
+let globalFilePaths = [];
 
 const prompts = {
   Task: "In Microsoft Visual Studio Code, I was trying to run the following code, Your task is to analyze the provided source code and associated error message. Generate a detailed report including the total number of errors, reasons for each error, and the necessary changes to correct each error.",
@@ -46,20 +45,21 @@ const prompts = {
   Tone: "With a professional and analytical tone, examine the provided code and error message. Your response should include the total number of errors, a brief reason for each error, and the changes needed to correct each error."
 };
 
+let pairs = [];
 
-function extractFilePaths(errorMessages) {
+function extractFilePaths(errorMessage) {
+  console.log("Error Message : ", errorMessage);
   const filePathsSet = new Set();
   const regex = /\/[^\s]+?\.[a-zA-Z]+/g;
 
-  errorMessages.forEach(function (errorMessage) {
-      const matches = errorMessage.match(regex);
-      if (matches) {
-          matches.forEach(function (match) {
-              filePathsSet.add(match);
-          });
-      }
-  });
-  return Array.from(filePathsSet);
+  const matches = errorMessage.match(regex);
+  if (matches) {
+      matches.forEach(function (match) {
+          filePathsSet.add(match);
+      });
+  }
+  globalFilePaths = Array.from(filePathsSet);
+  return globalFilePaths;
 }
 
 function readFile(path, callback) {
@@ -74,23 +74,34 @@ function readFile(path, callback) {
 }
 
 function getSourceCode(filePaths) {
-  const fileContents = [];
-  let filesToRead = filePaths.length;
+  let promises = [];
 
   filePaths.forEach(function (filePath) {
-      readFile(filePath, function (err, content) {
-          if (err) {
-
-          }
-          else {
-              fileContents.push(content);
-          }
+      let promise = new Promise((resolve, reject) => {
+          readFile(filePath, function (err, content) {
+              if (err) {
+                  reject(err);
+              } else {
+                  resolve(content);
+              }
+          });
       });
+
+      promises.push(promise);
   });
-  return fileContents;
+
+  return Promise.all(promises)
+      .then(contents => {
+          let fileContents = contents.join('');
+          return fileContents;
+      })
+      .catch(error => {
+          console.error(error);
+          return ''; // Or handle the error in a meaningful way
+      });
 }
 
-function OpenAI(Prompt) {
+async function OpenAI(Prompt) {
   const data = JSON.stringify({
       "messages": [
           {
@@ -117,15 +128,15 @@ function OpenAI(Prompt) {
       data: data
   };
 
-  axios.request(config)
-      .then(function (response) {
-          const result = response.data.choices.map(choice => choice.message.content)[0];
-          console.log(result);
-      })
-      .catch(function (error) {
-          console.error(error);
-      });
+  try {
+      const response = await axios.request(config);
+      return response.data.choices.map(choice => choice.message.content)[0];
+  } catch (error) {
+      console.error(error);
+      return ''; // Or handle the error in a meaningful way
+  }
 }
+
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -152,7 +163,7 @@ function GetErrorData(context)
     item.tooltip = `Error Data tool tip`;
     item.show();
 }
-function SuggestionGenerator(context, pairs){
+function SuggestionGenerator(context){
     const suggestionId = 'healerSuggestion.suggest';
     context.subscriptions.push(
         vscode.commands.registerCommand(suggestionId, () => {
@@ -168,19 +179,55 @@ function SuggestionGenerator(context, pairs){
         })
       );
 }
-function AnalyzeErrorData(context){
+
+function ReplaceWithSuggestion(context){
+  const replaceFile = "healerSuggestion.replace";
+  context.subscriptions.push(vscode.commands.registerCommand(replaceFile, async () => 
+  {
+    replaceCode(pairs);
+  }));
+}
+
+function replaceCode(replacements){
+  globalFilePaths.forEach(filePath => {
+    try {
+        let fileContent = fs.readFileSync(filePath, 'utf8');
+        replacements.forEach(replacement => {
+          console.log(replacement);
+            const { line_number, old_text, new_text } = replacement;
+            const lines = fileContent.split('\n');
+            if (lines[line_number - 1] && lines[line_number - 1].includes(old_text)) {
+                lines[line_number - 1] = lines[line_number - 1].replace(old_text, new_text);
+            }
+            fileContent = lines.join('\n');
+        });
+
+        fs.writeFileSync(filePath, fileContent, 'utf8');
+        console.log(`Replacements done in ${filePath}`);
+    } catch (err) {
+        console.error(`Error replacing text in ${filePath}: ${err.message}`);
+    }
+});
+}
+
+async function AnalyzeErrorData(context){
 
     const getActiveEditorDataId = 'codehealer.analyzeErrorData';
+    let errorCollected ="";
     context.subscriptions.push(vscode.commands.registerCommand(getActiveEditorDataId, async () => 
     {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
-        const document = editor.document;
-        const text = document.getText();
-        console.log(text);
+        let document = editor.document;
+        errorCollected = document.getText();
         vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
+        let fileContents = await getSourceCode(extractFilePaths(errorCollected));
+        const prompt = Object.values(prompts).join('') + "Error Starts From Here : " + errorCollected + "Error Ends Here" + "Code Starts Here " + fileContents + "Code Ends Here";
+        let result = await OpenAI(prompt);
+        result = JSON.parse(result).changes;
+        pairs = result;
         vscode.commands.executeCommand("healerSuggestion.suggest");
-        return text;
+        vscode.commands.executeCommand("healerSuggestion.replace");
     }
     else{
         vscode.window.showInformationMessage('No active editor found');
@@ -191,23 +238,11 @@ function AnalyzeErrorData(context){
     item.command = getActiveEditorDataId;
 
     context.subscriptions.push(item);
-    let fileContents = getSourceCode(extractFilePaths(errorMessages));
-
-    const prompt = Object.values(prompts).join('') + errorMessages.join('\n') + fileContents.join('\n');
-    OpenAI(prompt);
-
 
     item.text = `AnalyzeErrrorAndSuggestions`;
     item.tooltip = `Analyze Error Data and show suggestions`;
     item.show();
 }
-
-let pairs = [
-    {old_line: "This is the old line 1", new_line: "This is the new line 1"},
-    {old_line: "This is the old line 2", new_line: "This is the new line 2"},
-    {old_line: "This is the old line 3", new_line: "This is the new line 3"},
-    {old_line: "This is the old line 4", new_line: "This is the new line 4"},
-  ];
 function generateHtmlCode(pairs) {
 let htmlCode = `
 <html>
@@ -243,10 +278,11 @@ let htmlCode = `
 <body>
 `;
 pairs.forEach(pair => {
+  console.log(pair);
     htmlCode += `
     <div class="line-pair">
-    <p class="old-line">${pair.old_line}</p>
-    <p class="new-line">${pair.new_line}</p>
+    <p class="old-line">${pair.old_text}</p>
+    <p class="new-line">${pair.new_text}</p>
     </div>
     `;
 });
