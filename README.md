@@ -1,4 +1,4 @@
-# CodeHealer README
+# CodeHealer
 
 ## ProblemStatement
 Developers often encounter errors while coding that they struggle to resolve. Error messages may be unclear or seemingly nonsensical, leading to frustration and wasted time. Current solutions involve either copying the error message and associated code to seek help from external sources like search engines or  doing the same on ChatGpt
