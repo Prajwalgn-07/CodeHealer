@@ -1,19 +1,14 @@
 const vscode = require('vscode');
 const fs = require('fs');
-const dotenv = require('dotenv');
 const axios = require('axios');
+const path = require('path');
 
-
-dotenv.config();
-
-const endpoint = "";
-const azureApiKey = "";
-
-import('@azure/openai').then(({ OpenAIClient, AzureKeyCredential }) => {
-  // Your code using OpenAI Client and AzureKeyCredential
-}).catch(err => {
-  console.error('Error importing @azure/openai:', err);
-});
+// Read the Key from the config file
+const filePath = path.join(__dirname, 'config.json');
+const data = fs.readFileSync(filePath, 'utf8');
+const jsonData = JSON.parse(data);
+const endpoint = jsonData.endPoint;
+const azureApiKey = jsonData.azureApiKey;
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -31,9 +26,8 @@ function activate(context) {
 
 	context.subscriptions.push(disposable);
 }
-/////////////////////////////////////////////////////////////////////////////////////
 
-let errorMessages = "";
+
 let globalFilePaths = [];
 
 const prompts = {
@@ -138,8 +132,6 @@ async function OpenAI(Prompt) {
 }
 
 
-
-/////////////////////////////////////////////////////////////////////////////////////
 function GetErrorData(context)
 {
     // register a command that is invoked when the status bar
